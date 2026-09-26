@@ -1,0 +1,28 @@
+# Arquivos temporários
+.tmp_navcheck/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+dist/
+*.egg-info/
+
+# Testes
+#tests/
+
+# Banco de dados SQLite do SisPatrimônio
+*.db
+*.sqlite
+*.sqlite3
+data/patrimonio.db
+
+# MariaDB
+.env
+.env.*
+!.env.example
+
+# Runtime do SisPatrimônio (logs e repositório de backups)
+data/logs/
+data/backups/

@@ -1,0 +1,66 @@
+from app.models.enums import (
+    AssetStatus,
+    AssetCondition,
+    AssetCategory,
+    MovementType,
+    MaintenanceType,
+    MaintenanceStatus,
+)
+from app.models.location import Location
+from app.models.custodian import Custodian
+from app.models.asset import Asset
+from app.models.movement import Movement
+from app.models.maintenance import Maintenance
+from app.models.user import User
+from app.models.session import UserSession
+from app.models.role import Role
+from app.models.permission import Permission
+from app.models.user_role import UserRole
+from app.models.role_permission import RolePermission
+from app.models.audit_log import AuditLog
+from app.models.backup_record import BackupRecord
+from app.models.backup_config import BackupConfig
+from app.models.backup_external_config import BackupExternalConfig
+from app.models.backup_external_record import BackupExternalRecord
+from app.models.ad_settings import ADSettings
+from app.models.ad_group_role import ADGroupRole
+from app.models.setup_claim import SetupClaim
+from app.models.inventario import Inventario, InventarioItem
+from app.models.notification import EmailConfig, Notification
+from app.models.onedoc_integration import OneDocIntegration
+from app.models.integration_execution import IntegrationExecution
+from app.models.inventario_offline import InventarioOfflineColeta
+
+__all__ = [
+    "AssetStatus",
+    "AssetCondition",
+    "AssetCategory",
+    "MovementType",
+    "MaintenanceType",
+    "MaintenanceStatus",
+    "Location",
+    "Custodian",
+    "Asset",
+    "Movement",
+    "Maintenance",
+    "User",
+    "UserSession",
+    "Role",
+    "Permission",
+    "UserRole",
+    "RolePermission",
+    "AuditLog",
+    "BackupRecord",
+    "BackupConfig",
+    "BackupExternalConfig",
+    "BackupExternalRecord",
+    "ADSettings",
+    "ADGroupRole",
+    "SetupClaim",
+    "Inventario",
+    "InventarioItem",
+    "EmailConfig",
+    "Notification",
+    "IntegrationExecution",
+    "InventarioOfflineColeta",
+]

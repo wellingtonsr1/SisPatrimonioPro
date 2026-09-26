@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+
+{% block title %}Colaboradores & Custodiantes{% endblock %}
+
+{% block content %}
+<!--
+  Feature 040 — Ajuste responsivo da tabela "Colaboradores & Custodiantes":
+  layout determinístico (table-layout: fixed + colgroup) reusando o mecanismo
+  validado nas specs 036–039. CSS escopado a esta tabela (.cust-lista-table):
+  nenhuma regra global, nenhuma outra tela afetada. Rígidas (Matrícula/Bens/
+  Ações) em px com folga para a Plus Jakarta Sans; textuais (Nome/Cargo/
+  Departamento/E-mail) dividem o restante e exibem TEXTO COMPLETO, sem
+  clamp/ellipsis (clarificação da spec, FR-004..007).
+-->
+<style>
+  .cust-lista-table { table-layout: fixed; width: 100%; min-width: 1150px; }
+  .cust-lista-table th, .cust-lista-table td { overflow-wrap: break-word; vertical-align: middle; }
+  .cust-lista-table .col-mat { width: 150px; }
+  .cust-lista-table .col-nome { width: 23%; }
+  .cust-lista-table .col-cargo { width: 23%; }
+  .cust-lista-table .col-depto { width: 19%; }
+  .cust-lista-table .col-email { width: 19%; }
+  .cust-lista-table .col-bens { width: 64px; }
+  .cust-lista-table .col-acoes { width: 84px; }
+  .cust-lista-table .tag-badge { white-space: nowrap; }
+  .cust-lista-table .badge { white-space: normal; }
+  @media (max-width: 768px) {
+    .cust-lista-table { min-width: 1080px; }
+    .cust-lista-table th { font-size: .72rem; }
+  }
+  /* Feature 040 — 3 botões no header desta tela estouram a linha em viewports
+     estreitas: permite a quebra para a linha de baixo (escopado à tela). */
+  .page-header .d-flex { flex-wrap: wrap; }
+</style>
+<div class="page-header">
+    <div>
+        <h3 class="page-header-title">Colaboradores & Custodiantes</h3>
+        <p class="page-header-subtitle">Controle de colaboradores e dos equipamentos sob custódia de cada funcionário.</p>
+    </div>
+    <div class="d-flex gap-2">
+        {% if can('relatorios.exportar') %}
+        <a href="/reports/custodians" class="btn btn-ghost">
+            <i class="bi bi-upload me-1"></i> Exportar CSV
+        </a>
+        {% endif %}
+        {% if can('colaboradores.criar') %}
+        <a href="/custodians/import" class="btn btn-ghost">
+            <i class="bi bi-download me-1"></i> Importar CSV
+        </a>
+        <a href="/custodians/new" class="btn btn-primary">
+            <i class="bi bi-person-plus me-1"></i> Cadastrar Colaborador
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card p-3 mb-4">
+    <form method="get" action="/custodians" class="row g-2 align-items-center">
+        <div class="col-12 col-lg-5">
+            <div class="input-group">
+                <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
+                <input type="text" name="search" class="form-control border-start-0 ps-0" placeholder="Pesquisar por matrícula, nome, cargo, departamento ou e-mail..." value="{{ search }}">
+            </div>
+        </div>
+        <div class="col-auto d-flex gap-2 align-items-end">
+            <button type="submit" class="btn btn-primary"><i class="bi bi-funnel me-1"></i> Filtrar</button>
+            <a href="/custodians" class="btn btn-ghost">Limpar</a>
+        </div>
+    </form>
+</div>
+
+<div class="card">
+    {% if custodians %}
+    <div class="table-responsive">
+        <table class="table align-middle cust-lista-table">
+            <colgroup>
+                <col class="col-mat">
+                <col class="col-nome">
+                <col class="col-cargo">
+                <col class="col-depto">
+                <col class="col-email">
+                <col class="col-bens">
+                <col class="col-acoes">
+            </colgroup>
+            <thead>
+                <tr>
+                    <th>Matrícula</th>
+                    <th>Nome</th>
+                    <th>Cargo</th>
+                    <th>Departamento</th>
+                    <th>E-mail</th>
+                    <th class="text-center">Bens</th>
+                    <th class="text-end">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in custodians %}
+                <tr>
+                    <td><span class="tag-badge">{{ c.registration_code }}</span>{% if is_provisional(c.registration_code) %} <span class="badge badge-soft-gray" title="Identificador provisório gerado automaticamente pelo sistema">provisória</span>{% endif %}</td>
+                    <td>
+                        <a href="/custodians/{{ c.id }}" class="fw-semibold text-decoration-none" style="color:var(--c-text);">
+                            <i class="bi bi-person-circle text-muted me-1"></i> {{ c.name }}
+                        </a>
+                    </td>
+                    <td class="small">{{ c.role }}</td>
+                    <td><span class="badge badge-soft-gray">{{ c.department }}</span></td>
+                    <td class="small text-muted">{{ c.email }}</td>
+                    <td class="text-center">
+                        <span class="badge rounded-pill" style="background:var(--c-primary);color:#fff;font-size:.85rem;padding:.3rem .7rem;">
+                            {{ c.active_assets_count }}
+                        </span>
+                    </td>
+                    <td class="text-end">
+                        <div class="d-flex gap-1 justify-content-end">
+                            {% if can('colaboradores.editar') %}
+                            <a href="/custodians/{{ c.id }}/edit" class="btn btn-ghost btn-icon" title="Editar Colaborador">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            {% endif %}
+                            <a href="/custodians/{{ c.id }}" class="btn btn-ghost btn-icon" title="Ver Bens sob custódia">
+                                <i class="bi bi-laptop"></i>
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% elif search %}
+    <div class="empty-state">
+        <i class="bi bi-search empty-state-icon"></i>
+        <div class="empty-state-title">Nenhum colaborador encontrado.</div>
+        <div class="text-muted small mt-1">Verifique o termo pesquisado ou limpe a pesquisa para ver todos os colaboradores.</div>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="bi bi-people empty-state-icon"></i>
+        <div class="empty-state-title">Nenhum colaborador cadastrado</div>
+        {% if can('colaboradores.criar') %}
+        <a href="/custodians/new" class="btn btn-primary btn-sm mt-2">Cadastrar Primeiro Colaborador</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
