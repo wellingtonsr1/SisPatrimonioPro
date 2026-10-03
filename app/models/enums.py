@@ -1,0 +1,197 @@
+import enum
+from typing import Dict
+
+
+# Rótulos em linguagem natural exibidos na interface.
+# O `value` do enum continua sendo o identificador técnico (banco, APIs, filtros).
+_LABELS: Dict[str, str] = {
+    # AssetStatus
+    "DISPONIVEL": "Disponível",
+    "EM_USO": "Em Uso",
+    "EM_MANUTENCAO": "Em Manutenção",
+    "EM_TRANSITO": "Em Trânsito",
+    "BAIXADO": "Baixado",
+    # AssetCondition
+    "NOVO": "Novo",
+    "EXCELENTE": "Excelente",
+    "BOM": "Bom",
+    "REGULAR": "Regular",
+    "RUIM": "Ruim",
+    "INSERVIVEL": "Inservível",
+    # AssetCategory
+    "NOTEBOOK": "Notebook",
+    "DESKTOP": "Desktop",
+    "MONITOR": "Monitor",
+    "SERVIDOR": "Servidor",
+    "REDE_E_CONECTIVIDADE": "Rede e Conectividade",
+    "IMPRESSORA": "Impressora",
+    "SMARTPHONE_TABLET": "Smartphone / Tablet",
+    "MOBILIARIO": "Mobiliário",
+    "VEICULO": "Veículo",
+    "EQUIPAMENTO_GERAL": "Equipamento Geral",
+    "OUTROS": "Outros",
+    # MovementType
+    "ENTRADA_AQUISICAO": "Entrada por Aquisição",
+    "ALOCACAO_CAUTELA": "Alocação / Cautela",
+    "TRANSFERENCIA_LOCAL": "Transferência de Local",
+    "ENVIO_MANUTENCAO": "Envio para Manutenção",
+    "RETORNO_MANUTENCAO": "Retorno de Manutenção",
+    "DEVOLUCAO_ESTOQUE": "Devolução ao Estoque",
+    "BAIXA_DESCARTE": "Baixa / Descarte",
+    "ATUALIZACAO_ESTADO": "Atualização de Estado",
+    # MaintenanceType
+    "PREVENTIVA": "Preventiva",
+    "CORRETIVA": "Corretiva",
+    "UPGRADE": "Upgrade",
+    # MaintenanceStatus
+    "AGENDADA": "Agendada",
+    "EM_ANDAMENTO": "Em Andamento",
+    "CONCLUIDA": "Concluída",
+    "CANCELADA": "Cancelada",
+    # InventarioStatus
+    "PLANEJADO": "Planejado",
+    # "EM_ANDAMENTO": "Em Andamento" (compartilhado com MaintenanceStatus)
+    "ENCERRADO": "Encerrado",
+    # InventarioItemStatus
+    "PENDENTE": "Pendente",
+    "ENCONTRADO": "Encontrado",
+    "LOCAL_DIFERENTE": "Local Diferente",
+    "NAO_ENCONTRADO": "Não Encontrado",
+    "SEM_IDENTIFICACAO": "Sem Identificação",
+    # InventarioOfflineColetaStatus (feature 033 — aditivo)
+    "OFFLINE_ACEITA": "Aceita",
+    "OFFLINE_DUPLICADA": "Duplicada",
+    "OFFLINE_CONFLITO": "Conflito",
+    "OFFLINE_REJEITADA": "Rejeitada",
+    "OFFLINE_RECONCILIADA": "Reconciliada",
+}
+
+
+class _LabeledEnum(str, enum.Enum):
+    """Enum com rótulo pronto para exibição ao usuário final.
+
+    Em templates use `label`; `value` permanece como identificador técnico.
+
+    Observação importante para MariaDB:
+    - SQLAlchemy encontra o tipo ``Enum`` automaticamente (não exige
+      ``Enum(..., create_constraint=False)``).
+    - O contexto de geração de schema deve *preencher* o dicionário de
+      tipos ``enum.`` antes de emitir qualquer ``CREATE TABLE`` ou
+      ``ALTER TABLE``.
+    """
+
+    @property
+    def label(self) -> str:
+        return _LABELS.get(self.value, self.value)
+
+
+def _register_all_enums():
+    """Registra todos os enums do sistema para geração de schema no MariaDB.
+
+    Chama-se uma única vez, antes de ``Base.metadata.create_all()``:
+
+        from app.models.enums import _register_all_enums
+        _register_all_enums()
+
+    Isso garante que, ao gerar o schema no MariaDB, o SQLAlchemy encontre
+    os tipos Enum registrados e emita comandos ``CREATE TYPE``/
+    ``ALTER TABLE`` compatíveis.
+    """
+    # Força a materialização dos membros de cada classe Enum para
+    # garantir que o SQLAlchemy saiba dos tipos antes da geração de schema.
+    for _ in (
+        AssetStatus,
+        AssetCondition,
+        AssetCategory,
+        MovementType,
+        MaintenanceType,
+        MaintenanceStatus,
+        InventarioStatus,
+        InventarioItemStatus,
+    ):
+        for _ in _:
+            pass
+
+
+
+class AssetStatus(_LabeledEnum):
+    AVAILABLE = "DISPONIVEL"            # Disponível no estoque
+    IN_USE = "EM_USO"                   # Alocado / Em uso por colaborador ou setor
+    IN_MAINTENANCE = "EM_MANUTENCAO"    # Em manutenção técnica
+    IN_TRANSIT = "EM_TRANSITO"          # Em transferência / transporte
+    WRITTEN_OFF = "BAIXADO"             # Descartado / Baixado / Leiloado / Perdido
+
+
+class AssetCondition(_LabeledEnum):
+    NEW = "NOVO"                        # Novo / Na caixa
+    EXCELLENT = "EXCELENTE"             # Excelente estado
+    GOOD = "BOM"                        # Bom estado de funcionamento
+    FAIR = "REGULAR"                    # Regular com marcas de uso
+    POOR = "RUIM"                       # Danificado / Necessita reparo
+    UNSERVICEABLE = "INSERVIVEL"        # Sem condições de uso / Sucata
+
+
+class AssetCategory(_LabeledEnum):
+    NOTEBOOK = "NOTEBOOK"
+    DESKTOP = "DESKTOP"
+    MONITOR = "MONITOR"
+    SERVER = "SERVIDOR"
+    NETWORKING = "REDE_E_CONECTIVIDADE"
+    PRINTER = "IMPRESSORA"
+    SMARTPHONE = "SMARTPHONE_TABLET"
+    FURNITURE = "MOBILIARIO"
+    VEHICLE = "VEICULO"
+    EQUIPMENT = "EQUIPAMENTO_GERAL"
+    OTHER = "OUTROS"
+
+
+class MovementType(_LabeledEnum):
+    ACQUISITION = "ENTRADA_AQUISICAO"         # Cadastro inicial e entrada no acervo
+    ALLOCATION = "ALOCACAO_CAUTELA"           # Entrega / Cautela para colaborador
+    TRANSFER = "TRANSFERENCIA_LOCAL"          # Mudança de filial / prédio / sala
+    MAINTENANCE_OUT = "ENVIO_MANUTENCAO"      # Envio para assistência/conserto
+    MAINTENANCE_IN = "RETORNO_MANUTENCAO"     # Retorno da manutenção
+    RETURN_STOCK = "DEVOLUCAO_ESTOQUE"        # Devolução ao estoque (ex: demissão ou troca)
+    WRITE_OFF = "BAIXA_DESCARTE"              # Descarte/baixa definitiva
+    STATUS_UPDATE = "ATUALIZACAO_ESTADO"      # Vistoria / Mudança de estado de conservação
+
+
+class MaintenanceType(_LabeledEnum):
+    PREVENTIVE = "PREVENTIVA"
+    CORRECTIVE = "CORRETIVA"
+    UPGRADE = "UPGRADE"
+
+
+class MaintenanceStatus(_LabeledEnum):
+    SCHEDULED = "AGENDADA"
+    IN_PROGRESS = "EM_ANDAMENTO"
+    COMPLETED = "CONCLUIDA"
+    CANCELLED = "CANCELADA"
+
+
+class InventarioStatus(_LabeledEnum):
+    PLANNED = "PLANEJADO"          # Criado, escopo definido, conferência ainda não iniciada
+    IN_PROGRESS = "EM_ANDAMENTO"   # Conferência em campo em andamento
+    CLOSED = "ENCERRADO"           # Encerrado: resultados consolidados, itens travados
+
+
+class InventarioItemStatus(_LabeledEnum):
+    PENDING = "PENDENTE"                    # Aguardando conferência física
+    FOUND = "ENCONTRADO"                    # 🟢 Localizado e conferido
+    FOUND_WRONG_LOCATION = "LOCAL_DIFERENTE"  # 🟡 Existe, mas em local diverso do cadastro
+    NOT_FOUND = "NAO_ENCONTRADO"            # 🔴 Não localizado durante a conferência
+    UNIDENTIFIED = "SEM_IDENTIFICACAO"      # ⚠️ Bem presente, mas sem tombo/etiqueta legível
+
+
+class InventarioOfflineColetaStatus(_LabeledEnum):
+    """Estado no servidor de cada coleta offline recebida (feature 033).
+
+    Vocabulário controlado aditivo (data-model.md); nunca altera
+    vocabulários existentes.
+    """
+
+    ACCEPTED = "OFFLINE_ACEITA"            # Gravada no item via services oficiais
+    DUPLICATED = "OFFLINE_DUPLICADA"       # Reenvio ou resultado igual ao estado atual (C-5)
+    CONFLICT = "OFFLINE_CONFLITO"          # Resultado divergente; preservada para reconciliação
+    REJECTED = "OFFLINE_REJEITADA"         # Falha de validação com reject_reason
+    RECONCILED = "OFFLINE_RECONCILIADA"    # Conflito resolvido por usuário autorizado (D8)
