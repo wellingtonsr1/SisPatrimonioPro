@@ -1,0 +1,192 @@
+{# Parcial: pré-visualização classificada — Feature 048 (contrato §4).
+   Requerido no contexto: smart (PreviewSmart — data-model §2.3), mapping_json,
+   csv_content, filename, skip_duplicates, field_labels, form_action (URL do
+   POST analyze — re-POST dos filtros), confirm_action (URL do /confirm),
+   filtro, counts_by_status, custodians_for_assign, back_url.
+   Badges existentes do sistema (P-2). Nada é gravado nesta fase (SC-001). #}
+{% set filtro = filtro or 'todos' %}
+<div class="card mb-4" id="preview-classificada">
+    <div class="card-header d-flex align-items-center justify-content-between">
+        <h5 class="mb-0">
+            <i class="bi bi-eye text-primary me-2"></i>Pré-visualização Classificada
+        </h5>
+        <span class="badge bg-primary-subtle text-primary">{{ smart.summary.total }} registro(s)</span>
+    </div>
+    <div class="card-body">
+        {% set s = smart.summary %}
+        <!-- Resumo -->
+        <div class="row row-cols-md-4 row-cols-2 g-2 mb-3">
+            <div class="col"><div class="border rounded p-2 text-center">
+                <div class="fs-4 fw-bold text-primary">{{ s.total }}</div>
+                <div class="text-muted small">Total</div>
+            </div></div>
+            <div class="col"><div class="border rounded p-2 text-center">
+                <div class="fs-4 fw-bold text-success">{{ s.validos }}</div>
+                <div class="text-muted small">Válidos</div>
+            </div></div>
+            <div class="col"><div class="border rounded p-2 text-center">
+                <div class="fs-4 fw-bold text-warning">{{ s.avisos }}</div>
+                <div class="text-muted small">Com aviso</div>
+            </div></div>
+            <div class="col"><div class="border rounded p-2 text-center">
+                <div class="fs-4 fw-bold text-secondary">{{ s.duplicados }}</div>
+                <div class="text-muted small">Duplicados</div>
+            </div></div>
+            <div class="col"><div class="border rounded p-2 text-center">
+                <div class="fs-4 fw-bold text-danger">{{ s.erros }}</div>
+                <div class="text-muted small">Erros</div>
+            </div></div>
+            <div class="col"><div class="border rounded p-2 text-center">
+                <div class="fs-4 fw-bold text-info">{{ s.nao_encontrados }}</div>
+                <div class="text-muted small">Não encontrados</div>
+            </div></div>
+            <div class="col"><div class="border rounded p-2 text-center">
+                <div class="fs-4 fw-bold text-muted">{{ s.ignorados }}</div>
+                <div class="text-muted small">Ignorados</div>
+            </div></div>
+        </div>
+
+        {% if smart.needs_resolution %}
+        <div class="alert alert-info small py-2 px-3">
+            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                <span>
+                    <i class="bi bi-person-x me-1"></i><strong>Responsáveis não encontrados:</strong>
+                    resolva cada linha abaixo — nenhuma atribuição automática será feita.
+                </span>
+                <a class="btn btn-sm btn-ghost py-0 px-2" data-bs-toggle="collapse"
+                   href="#ajuda-resolucao" role="button" aria-expanded="false" aria-controls="ajuda-resolucao">
+                    <i class="bi bi-question-circle me-1"></i>o que faz cada opção?
+                </a>
+            </div>
+            <div class="collapse" id="ajuda-resolucao">
+                <hr class="my-2">
+                <div class="row">
+                    <div class="col-md-4">
+                        <strong>Importar sem custódia (aviso)</strong> — cadastra o equipamento
+                        <strong>sem responsável</strong>: entra no patrimônio com a movimentação de
+                        entrada normal e fica disponível para alocação depois, pelo
+                        Fluxo &amp; Movimentação. Use quando o bem é real e deve ser tombado agora.
+                    </div>
+                    <div class="col-md-4">
+                        <strong>Pular linha</strong> — <strong>nada é gravado</strong>: o equipamento
+                        não é cadastrado nem entra no Fluxo. Use quando a linha estiver errada ou
+                        você preferir corrigir o CSV e reenviar (a reanálise relê o banco — nada é
+                        duplicado).
+                    </div>
+                    <div class="col-md-4">
+                        <strong>Atribuir a…</strong> — grava o equipamento <strong>com a custódia</strong>
+                        do colaborador escolhido no cadastro (nome + matrícula), gerando a alocação
+                        no Fluxo. Nenhuma pessoa é atribuída por semelhança de nome.
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Formulário único da fase: os botões de filtro reenviam a fase
+             analyze (POST, reclassificação somente leitura); o botão Confirmar
+             troca o destino via formaction para o /confirm (gravação). -->
+        <form id="form-preview-smart" method="post" action="{{ form_action }}">
+            <input type="hidden" name="step" value="analyze">
+            <input type="hidden" name="csv_content" value="{{ csv_content | e }}">
+            <input type="hidden" name="mapping" value="{{ mapping_json | e }}">
+            <input type="hidden" name="filename" value="{{ filename | e }}">
+
+            <!-- Filtros: botões submit com name=filtro (server-side, sem JS) -->
+            <div class="btn-group btn-group-sm mb-3 flex-wrap" role="group" aria-label="Filtrar por situação">
+                {% for key, label in [('todos','Todos'), ('VALIDO','Válidos'), ('AVISO','Avisos'), ('DUPLICADO','Duplicados'), ('ERRO','Erros'), ('NAO_ENCONTRADO','Não encontrados'), ('IGNORADO','Ignorados')] %}
+                <button type="submit" name="filtro" value="{{ key }}"
+                        class="btn {% if filtro == key %}btn-primary{% else %}btn-ghost{% endif %}">
+                    {{ label }}{% if counts_by_status.get(key) %} <span class="badge badge-soft-gray ms-1">{{ counts_by_status[key] }}</span>{% endif %}
+                </button>
+                {% endfor %}
+            </div>
+
+            <!-- Tabela por linha -->
+            <div class="table-responsive" style="max-height:500px; overflow-y:auto;">
+                <table class="table table-sm table-hover align-middle">
+                    <thead class="table-light" style="position:sticky; top:0;">
+                        <tr>
+                            <th>Linha</th>
+                            <th>Identificador</th>
+                            <th>Situação</th>
+                            <th>Problema</th>
+                            {% if smart.needs_resolution %}<th>Resolução</th>{% endif %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for r in smart.rows %}
+                        {% if filtro == 'todos' or filtro == r.status %}
+                        <tr data-test-status="{{ r.status }}" {% if r.status in ('ERRO', 'NAO_ENCONTRADO') %}class="table-danger"{% elif r.status == 'DUPLICADO' %}class="table-secondary"{% elif r.status == 'AVISO' %}class="table-warning"{% endif %}>
+                            <td class="text-muted small">{{ r.row_num }}</td>
+                            <td class="fw-semibold"><span class="tag-badge">{{ r.identify }}</span></td>
+                            <td>
+                                {% if r.status == 'VALIDO' %}
+                                <span class="badge bg-success">VÁLIDO</span>
+                                {% elif r.status == 'AVISO' %}
+                                <span class="badge bg-warning text-dark">AVISO</span>
+                                {% elif r.status == 'DUPLICADO' %}
+                                <span class="badge bg-secondary">DUPLICADO</span>
+                                {% elif r.status == 'ERRO' %}
+                                <span class="badge bg-danger">ERRO</span>
+                                {% elif r.status == 'NAO_ENCONTRADO' %}
+                                <span class="badge bg-info text-dark">NÃO ENCONTRADO</span>
+                                {% else %}
+                                <span class="badge badge-soft-gray">IGNORADO</span>
+                                {% endif %}
+                            </td>
+                            <td class="small">
+                                {% for p in r.problems %}<div>{{ p }}</div>{% endfor %}
+                                {% if not r.problems %}<span class="text-muted">—</span>{% endif %}
+                            </td>
+                            {% if smart.needs_resolution %}
+                            <td>
+                                {% if r.status == 'NAO_ENCONTRADO' %}
+                                {% set valor_csv = r.resolved_values.get('custodiante', '') %}
+                                {% set escolha = resolutions_previas.get(r.row_num | string) or resolutions_previas.get(r.row_num) or 'sem_custodia' %}
+                                <select class="form-select form-select-sm" name="resolution_{{ r.row_num }}">
+                                    <option value="sem_custodia" {% if escolha == 'sem_custodia' %}selected{% endif %}>Importar sem custódia (aviso)</option>
+                                    <option value="skip" {% if escolha == 'skip' %}selected{% endif %}>Pular linha</option>
+                                    {% if custodians_for_assign %}
+                                    <optgroup label="Atribuir a…">
+                                        {% for c in custodians_for_assign %}
+                                        <option value="assign:{{ c.id }}" {% if escolha == 'assign:' ~ c.id %}selected{% endif %}>{{ c.name }}{% if c.registration_code %} ({{ c.registration_code }}){% endif %}</option>
+                                        {% endfor %}
+                                    </optgroup>
+                                    {% endif %}
+                                </select>
+                                {% if valor_csv %}<div class="small text-muted mt-1">CSV: “{{ valor_csv }}”</div>{% endif %}
+                                {% else %}—{% endif %}
+                            </td>
+                            {% endif %}
+                        </tr>
+                        {% endif %}
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Aviso: skip_duplicates explicitado (checkbox + hidden espelho:
+                 marcado envia true; desmarcado envia apenas false) -->
+            <div class="form-check mt-3">
+                <input class="form-check-input" type="checkbox" name="skip_duplicates"
+                       id="skip_duplicates_smart" value="true" {% if skip_duplicates %}checked{% endif %}>
+                <label class="form-check-label" for="skip_duplicates_smart">
+                    <strong>Pular duplicados</strong> — marcado, registros duplicados são pulados;
+                    desmarcado, a reimportação atualiza o registro existente.
+                </label>
+            </div>
+
+            <div class="d-flex align-items-center justify-content-end gap-3 mt-4">
+                <a href="{{ back_url }}" class="btn btn-ghost btn-lg">
+                    <i class="bi bi-x-lg me-1"></i>Cancelar
+                </a>
+                <button type="submit" class="btn btn-primary btn-lg"
+                        formaction="{{ confirm_action }}">
+                    <i class="bi bi-check-lg me-1"></i>Confirmar Importação
+                    <span class="badge bg-white text-primary ms-2">{{ s.validos + s.avisos }}</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
