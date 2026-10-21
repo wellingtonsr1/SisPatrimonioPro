@@ -1,0 +1,39 @@
+# Arquivos temporários
+.tmp_navcheck/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+dist/
+*.egg-info/
+
+# Testes
+#tests/
+
+# Banco de dados SQLite do SisPatrimônio
+*.db
+*.sqlite
+*.sqlite3
+data/patrimonio.db
+
+# MariaDB
+.env
+.env.*
+!.env.example
+
+# Runtime do SisPatrimônio (logs e repositório de backups)
+data/logs/
+data/backups/
+
+# HTTPS local (feature 056) — chave privada NUNCA versionada
+data/ssl/
+
+# Certificados/chaves soltos — material TLS vive em data/ssl/ (gerado por
+# scripts/gera_cert_dev.py) e NUNCA é versionado (feature 056: dívida de
+# higiene do legado sispatrimoniopro.cert resolvida — arquivo removido do repo)
+*.cert
+*.crt
+*.pem
+*.key
